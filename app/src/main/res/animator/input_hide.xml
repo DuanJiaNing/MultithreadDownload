@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<set xmlns:android="http://schemas.android.com/apk/res/android"
+    android:ordering="together"
+    >
+
+    <objectAnimator
+        android:duration="800"
+        android:propertyName="translationY"
+        android:interpolator="@android:anim/linear_interpolator"
+        android:valueFrom="0.0f"
+        android:valueTo="400.0f"
+        android:valueType="floatType"
+        />
+    <objectAnimator
+        android:duration="1000"
+        android:propertyName="alpha"
+        android:valueFrom="1.0f"
+        android:valueTo="0.0f"
+        android:valueType="floatType"
+        />
+</set>

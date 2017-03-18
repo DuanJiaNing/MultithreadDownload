@@ -84,6 +84,16 @@
             android:gravity="center|start"
             android:padding="5dp"
             android:textStyle="italic" />
+        <TextView
+            android:textSize="10sp"
+            android:textColor="#fff"
+            android:text="已下载"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="#6c6c6c"
+            android:gravity="center|start"
+            android:padding="2dp"
+            />
         <ListView
             android:id="@+id/main_lv"
             android:layout_width="match_parent"
@@ -93,7 +103,6 @@
 
     <android.support.v7.widget.CardView
         android:layout_margin="16dp"
-        android:visibility="invisible"
         android:id="@+id/main_cv"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

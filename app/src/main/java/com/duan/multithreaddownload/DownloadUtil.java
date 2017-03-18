@@ -17,10 +17,7 @@ import java.net.URL;
 
 public class DownloadUtil {
 
-    private final String A = "application/";
-    private String accept = "image/*," + A + "x-shockwave-flash," + A + "xaml+xml," + A + "vnd.ms-xpsdocument,"
-            + A + "x-ms-xbap," + A + "x-ms-application," + A + "vnd.ms-excel," + A + "vnd.ms-powerpoint," + A + "msworld,*/*";
-    //下载文件的URL地址
+   //下载文件的URL地址
     private String sourcePath;
     //下载文件保存的目标路径（包括文件名）
     private String targetFilePathAndName;
@@ -32,18 +29,28 @@ public class DownloadUtil {
     private int fileSize;
     //每个线程负责下载的文件块大小
     private int partSize;
-    public final int MAX_THREAD_NUMBER = 100;
+    //最大可开启的线程数
+    public static final int MAX_THREAD_NUMBER = 50;
+    //默认下载文件保存路径
     private final String DEFAULT_TARGET_FOLDER_PATH = "/sdcard/Download/";
-
+    private final String A = "application/";
+    private String accept = "image/*," + A + "x-shockwave-flash," + A + "xaml+xml," + A + "vnd.ms-xpsdocument,"
+            + A + "x-ms-xbap," + A + "x-ms-application," + A + "vnd.ms-excel," + A + "vnd.ms-powerpoint," + A + "msworld,*/*";
+    //还在下载的线程数量
     private volatile int restTask;
-    private OnDownloadComplete downloadComplete;
+    private OnDownloadFinish downloadFinish;
 
-    public interface OnDownloadComplete {
-        void oncomplete(File file);
+    //下载完成后的回调
+    public interface OnDownloadFinish {
+        /**
+         * 所有线程都结束后调用
+         * @param file 下载好的文件
+         */
+        void onComplete(File file);
     }
 
-    public DownloadUtil(OnDownloadComplete complete) {
-        this.downloadComplete = complete;
+    public DownloadUtil(OnDownloadFinish complete) {
+        this.downloadFinish = complete;
     }
 
     public int getPartSize() {
@@ -62,12 +69,9 @@ public class DownloadUtil {
         return targetFilePathAndName;
     }
 
-
-
     /**
-     * 获得目前总的下载量
-     *
-     * @return 目前已下载的字节数
+     * 获得目前所有线程的下载量之和
+     * @return 已下载的字节数
      */
     public int getCurrentDownload() {
         int sum = 0;
@@ -79,17 +83,24 @@ public class DownloadUtil {
 
     /**
      * 获得目前每个线程单独的下载量
-     *
-     * @return 各个线程下载的字节数（线程名-字节数）
+     * @return 各个线程下载的字节数（线程名 字节数）
      */
     public String[] getCurrentThreadsDownloadCount() {
         String[] res = new String[threadNumber];
         for (int i = 0; i < threadNumber; i++) {
-            res[i] = threads[i].getName() + "-" + threads[i].getCurrentDownLoaded();
+            res[i] = threads[i].getName() + " " + threads[i].getCurrentDownLoaded();
         }
         return res;
     }
 
+    /**
+     * 开始一次下载
+     * @param sourcePath 目标URL
+     * @param targetFilePath 目标保存路径
+     * @param threadNumber 开启的线程数
+     * @param fileName 保存的文件名
+     * @throws IOException
+     */
     public void start(@NonNull String sourcePath, @Nullable String targetFilePath, int threadNumber, @Nullable String fileName) throws IOException {
         this.sourcePath = sourcePath;
         this.targetFilePathAndName = targetFilePath == null ? DEFAULT_TARGET_FOLDER_PATH
@@ -161,7 +172,7 @@ public class DownloadUtil {
             } finally {
                 restTask--;
                 if (restTask == 0)
-                    downloadComplete.oncomplete(new File(targetFilePathAndName));
+                    downloadFinish.onComplete(new File(targetFilePathAndName));
 
             }
 
@@ -181,8 +192,7 @@ public class DownloadUtil {
     }
 
     /**
-     * 从输入流中总起点开始跳过指定长度
-     *
+     * 从输入流中从起点开始跳过指定长度
      * @param in    输入流
      * @param bytes 要跳过的字节数
      * @throws IOException
