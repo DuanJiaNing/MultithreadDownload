@@ -75,6 +75,8 @@ public class MainActivity extends Activity {
     //下载完成弹出的命名对话框
     private AlertDialog dialog;
     private EditText editText;
+    //每次下载回调complete时传回的文件
+    private File file;
 
     private class DownloadInfo {
         String name;
@@ -140,7 +142,7 @@ public class MainActivity extends Activity {
             }
         });
 
-        final AnimatorSet cvShow = (AnimatorSet) AnimatorInflater.loadAnimator(this,R.animator.input_show);
+        final AnimatorSet cvShow = (AnimatorSet) AnimatorInflater.loadAnimator(this, R.animator.input_show);
         final AnimatorSet cvHide = (AnimatorSet) AnimatorInflater.loadAnimator(this, R.animator.input_hide);
         cvShow.setTarget(cardView);
         cvHide.setTarget(cardView);
@@ -150,7 +152,9 @@ public class MainActivity extends Activity {
         final ObjectAnimator btHide = ObjectAnimator.ofFloat(input, "rotation", 180, 0).setDuration(1000);
         btShow.setInterpolator(new OvershootInterpolator());
         btHide.setInterpolator(new DecelerateInterpolator());
+
         btShow.start();
+        cvShow.start();
 
         input.setOnClickListener(new View.OnClickListener() {
             boolean hasCardViewShow = true;
@@ -171,15 +175,23 @@ public class MainActivity extends Activity {
         final DownloadUtil downloadUtil = new DownloadUtil(new DownloadUtil.OnDownloadFinish() {
             @Override
             public void onComplete(File file) {
-                final File fil = file;
+                //1.定义全局的MainActivity.this.file来获得file的引用
+                //2.在此处定义一个final的File来获得file的引用
+                //不能使用第二种方法** 当第一次下载成功回调该方法时2里的file被赋值，赋值后dialog初始化，此时dialog持有2中file的引用
+                //onComplete方法执结束时2中file被回收，但dialog初始时在nclick方法里使用了他的值
+                //使每次调用dialog里onclick方法时用的file都是第一次调用onComplete时的值，从而使File.reNameTo方法在调用两次之后就出错无法使用
+                //而每次调用editText.setText();时用的却是该次新的final File对象使对话框能正确显示文件名
+                //因此应使用全局的file对象
+                MainActivity.this.file = file;
                 MainActivity.this.runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
                         timer.cancel(); //停止"实时更新下载进度"定时器
                         timer.purge();//清除定时器
                         timer = null;
+
                         curDownloadSize.setText("耗时：" + new SimpleDateFormat("HH时:mm分:ss秒:SSS毫秒").format(new Date(System.currentTimeMillis() - startTime - 8 * 60 * 60 * 1000)));
-                        fileSavePath.setText("文件路径：" + fil.getAbsolutePath());
+                        fileSavePath.setText("文件路径：" + MainActivity.this.file.getAbsolutePath());
                         if (progressBar.getProgress() < fileSize) //文件太小时timer的时间差可能会出现下载完成了但progressBar没走完的情况
                             progressBar.setProgress(fileSize);
 
@@ -193,7 +205,7 @@ public class MainActivity extends Activity {
                                     .setNegativeButton("取消", new DialogInterface.OnClickListener() {
                                         @Override
                                         public void onClick(DialogInterface dialog, int which) {
-                                            addData(fil.getName());
+                                            addData(MainActivity.this.file.getName());
                                             dialog.dismiss();
                                         }
                                     })
@@ -202,13 +214,14 @@ public class MainActivity extends Activity {
                                         public void onClick(DialogInterface dialog, int which) {
                                             String name = editText.getText().toString();
                                             if (name != "" && name.length() > 0) {
-                                                if (fil.renameTo(new File(fil.getParent() + "/" + name))) {
+                                                boolean sc = MainActivity.this.file.renameTo(new File(MainActivity.this.file.getParent() + "/" + name));
+                                                if (sc) {
                                                     Toast.makeText(MainActivity.this, "命名成功:" + name, Toast.LENGTH_SHORT).show();
-                                                    fileSavePath.setText("文件路径：" + fil.getParent() + "/" + name);
+                                                    fileSavePath.setText("文件路径：" + MainActivity.this.file.getParent() + "/" + name);
                                                     addData(name);
                                                 } else {
                                                     Toast.makeText(MainActivity.this, "命名失败", Toast.LENGTH_SHORT).show();
-                                                    addData(fil.getName());
+                                                    addData(MainActivity.this.file.getName());
                                                 }
                                             }
                                             dialog.dismiss();
@@ -216,7 +229,7 @@ public class MainActivity extends Activity {
                                     }).setCancelable(false);
                             dialog = builder.create();
                         }
-                        editText.setText(fil.getName());
+                        editText.setText(MainActivity.this.file.getName());
                         dialog.show();
                     }
                 });
@@ -228,8 +241,8 @@ public class MainActivity extends Activity {
             public void onClick(View v) {
                 final String pa = path.getText().toString();
                 String ths = threadNumber.getText().toString();
-                if (ths == "" || ths.length() == 0) //错误输入或没有输入时默认开启5个线程下载
-                    ths = "5";
+                if (ths == "" || ths.length() == 0) //错误输入或没有输入时默认开启3个线程下载
+                    ths = "3";
                 int te = Integer.valueOf(ths);
                 final int tn = te >= DownloadUtil.MAX_THREAD_NUMBER ? DownloadUtil.MAX_THREAD_NUMBER : te;
 

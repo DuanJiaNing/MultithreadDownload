@@ -197,7 +197,7 @@ public class DownloadUtil {
      * @param bytes 要跳过的字节数
      * @throws IOException
      */
-    public void skipFully(InputStream in, long bytes) throws IOException {
+    public final void skipFully(InputStream in, long bytes) throws IOException {
         long len;
         while (bytes > 0) {
             len = in.skip(bytes);
