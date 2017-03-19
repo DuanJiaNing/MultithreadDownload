@@ -129,7 +129,7 @@ public class MainActivity extends Activity {
         Button download = (Button) findViewById(R.id.main_bt);
         final View cardView = findViewById(R.id.main_cv);
 
-        fileSavePath.setHint("当前默认保存路径为：/sdcard/Download/\n默认开启5个线程进行下载");
+        fileSavePath.setHint("当前默认保存路径为：/sdcard/Download/\n默认开启3个线程进行下载");
 
         downloadedInfos = new ArrayList<DownloadInfo>();
 
