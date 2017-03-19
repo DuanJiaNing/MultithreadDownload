@@ -7,6 +7,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.RandomAccessFile;
+import java.net.ConnectException;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -164,6 +165,7 @@ public class DownloadUtil {
                 }
                 currentPart.close();
                 in.close();
+                connection.disconnect();
 
             } catch (MalformedURLException e) {
                 e.printStackTrace();
