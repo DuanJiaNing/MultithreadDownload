@@ -113,7 +113,7 @@ public class MainActivity extends Activity {
         Map<String, String> map = new HashMap<>();
         map.put("name", name);
         adapterDatas.add(map); //...?
-        adapter.notifyDataSetChanged();//...?
+        adapter.notifyDataSetChanged();//...?如果没有定义全局的adapterDatas绑定到adapter（让adapter持有他的引用），调用该方法没有效果
     }
 
     private void init() {
