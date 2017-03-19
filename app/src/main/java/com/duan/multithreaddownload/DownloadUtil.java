@@ -100,9 +100,10 @@ public class DownloadUtil {
      * @param targetFilePath 目标保存路径
      * @param threadNumber 开启的线程数
      * @param fileName 保存的文件名
+     * @return 开启任务成功否
      * @throws IOException
      */
-    public void start(@NonNull String sourcePath, @Nullable String targetFilePath, int threadNumber, @Nullable String fileName) throws IOException {
+    public boolean start(@NonNull String sourcePath, @Nullable String targetFilePath, int threadNumber, @Nullable String fileName) throws IOException {
         this.sourcePath = sourcePath;
         this.targetFilePathAndName = targetFilePath == null ? DEFAULT_TARGET_FOLDER_PATH
                 + (fileName == null ? System.currentTimeMillis() : fileName) :
@@ -115,6 +116,11 @@ public class DownloadUtil {
         fileSize = conn.getContentLength();
         conn.disconnect();
 
+        if (fileSize <= 0) {
+            downloadFinish.onComplete(null);
+            return false;
+        }
+
         RandomAccessFile file = new RandomAccessFile(targetFilePathAndName, "rw");
         file.setLength(fileSize);
         file.close();
@@ -126,6 +132,7 @@ public class DownloadUtil {
             threads[i] = new DownLoadThread(startPos);
             threads[i].start();
         }
+        return true;
     }
 
 

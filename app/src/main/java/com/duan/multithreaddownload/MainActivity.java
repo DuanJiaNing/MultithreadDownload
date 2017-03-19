@@ -175,6 +175,21 @@ public class MainActivity extends Activity {
         final DownloadUtil downloadUtil = new DownloadUtil(new DownloadUtil.OnDownloadFinish() {
             @Override
             public void onComplete(File file) {
+                if (timer != null) {
+                    timer.cancel(); //停止"实时更新下载进度"定时器
+                    timer.purge();//清除定时器
+                    timer = null;
+                }
+                if (file == null) {
+                    MainActivity.this.runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            Toast.makeText(MainActivity.this, "下载出错", Toast.LENGTH_SHORT).show();
+                        }
+                    });
+                    return;
+                }
+
                 //1.定义全局的MainActivity.this.file来获得file的引用
                 //2.在此处定义一个final的File来获得file的引用
                 //不能使用第二种方法** 当第一次下载成功回调该方法时2里的file被赋值，赋值后dialog初始化，此时dialog持有2中file的引用
@@ -186,9 +201,6 @@ public class MainActivity extends Activity {
                 MainActivity.this.runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        timer.cancel(); //停止"实时更新下载进度"定时器
-                        timer.purge();//清除定时器
-                        timer = null;
 
                         curDownloadSize.setText("耗时：" + new SimpleDateFormat("HH时:mm分:ss秒:SSS毫秒").format(new Date(System.currentTimeMillis() - startTime - 8 * 60 * 60 * 1000)));
                         fileSavePath.setText("文件路径：" + MainActivity.this.file.getAbsolutePath());
@@ -256,54 +268,54 @@ public class MainActivity extends Activity {
                     public void run() {
                         try {
                             startTime = System.currentTimeMillis();
-                            downloadUtil.start(pa, null, tn, null); //开始下载
-                            fileSize = downloadUtil.getFileSize();
-                            MainActivity.this.runOnUiThread(new Runnable() {
-                                @Override
-                                public void run() {
-                                    progressBar.setMax(fileSize);
-                                    progressBar.setProgress(0);
-                                    String mb = new DecimalFormat("0.00").format(downloadUtil.getFileSize() / Math.pow(2, 20));
-                                    if (builder == null)
-                                        builder = new StringBuilder();
-                                    else builder.delete(0, builder.length());
-                                    builder.append("任务信息：\n")
-                                            .append("URL:")
-                                            .append(pa)
-                                            .append("\n下载文件大小：")
-                                            .append(downloadUtil.getFileSize() + "字节(" + (downloadUtil.getFileSize() >> 10) + "KB)" + " (" + mb + "MB)")
-                                            .append("\n实际下载线程数：")
-                                            .append(downloadUtil.getThreadNumber())
-                                            .append("\n每个线程负责下载：")
-                                            .append(downloadUtil.getPartSize() + "字节")
-                                            .append("(" + (downloadUtil.getPartSize() >> 10) + "KB)" + "\n");
-                                    taskDetail.setText(builder.toString());
-                                }
-                            });
+                            if (downloadUtil.start(pa, null, tn, null) ) { //开始下载
+                                fileSize = downloadUtil.getFileSize();
+                                MainActivity.this.runOnUiThread(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        progressBar.setMax(fileSize);
+                                        progressBar.setProgress(0);
+                                        String mb = new DecimalFormat("0.00").format(downloadUtil.getFileSize() / Math.pow(2, 20));
+                                        if (builder == null)
+                                            builder = new StringBuilder();
+                                        else builder.delete(0, builder.length());
+                                        builder.append("任务信息：\n")
+                                                .append("URL:")
+                                                .append(pa)
+                                                .append("\n下载文件大小：")
+                                                .append(downloadUtil.getFileSize() + "字节(" + (downloadUtil.getFileSize() >> 10) + "KB)" + " (" + mb + "MB)")
+                                                .append("\n实际下载线程数：")
+                                                .append(downloadUtil.getThreadNumber())
+                                                .append("\n每个线程负责下载：")
+                                                .append(downloadUtil.getPartSize() + "字节")
+                                                .append("(" + (downloadUtil.getPartSize() >> 10) + "KB)" + "\n");
+                                        taskDetail.setText(builder.toString());
+                                    }
+                                });
 
-                            if (timer == null)
-                                timer = new Timer();
-                            timer.schedule(new TimerTask() {
-                                @Override
-                                public void run() {
-                                    MainActivity.this.runOnUiThread(new Runnable() {
-                                        @Override
-                                        public void run() {
-                                            int cu = downloadUtil.getCurrentDownload();
-                                            progressBar.setProgress(cu);
-                                            curDownloadSize.setText(cu + "/" + fileSize + "(字节)\n" + (cu >> 10) + "/" + (fileSize >> 10) + "(kb)");
-                                            Calendar ca = Calendar.getInstance();
-                                            ca.setTimeInMillis(System.currentTimeMillis() - startTime);
-                                            int seco = ca.get(Calendar.SECOND);
-                                            int se = cu / (seco == 0 ? 1 : seco);
-                                            actualDownloadSpeed.setText("下载速度：" + se + " byte/s \n" + (se >> 10) + " kb/s"); //当下载文件太小时会引发除0错误
-                                        }
-                                    });
-                                }
-                            }, 0, 100); //没100ms更新一次下载进度和速度
+                                if (timer == null)
+                                    timer = new Timer();
+                                timer.schedule(new TimerTask() {
+                                    @Override
+                                    public void run() {
+                                        MainActivity.this.runOnUiThread(new Runnable() {
+                                            @Override
+                                            public void run() {
+                                                int cu = downloadUtil.getCurrentDownload();
+                                                progressBar.setProgress(cu);
+                                                curDownloadSize.setText(cu + "/" + fileSize + "(字节)\n" + (cu >> 10) + "/" + (fileSize >> 10) + "(kb)");
+                                                Calendar ca = Calendar.getInstance();
+                                                ca.setTimeInMillis(System.currentTimeMillis() - startTime);
+                                                int seco = ca.get(Calendar.SECOND);
+                                                int se = cu / (seco == 0 ? 1 : seco);
+                                                actualDownloadSpeed.setText("下载速度：" + se + " byte/s \n" + (se >> 10) + " kb/s"); //当下载文件太小时会引发除0错误
+                                            }
+                                        });
+                                    }
+                                }, 0, 100); //没100ms更新一次下载进度和速度
+                            }
                         } catch (IOException e) {
                             e.printStackTrace();
-                            Toast.makeText(MainActivity.this, "下载失败", Toast.LENGTH_SHORT).show();
                         }
                     }
                 }).start();
